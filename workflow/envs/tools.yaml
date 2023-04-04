@@ -1,0 +1,7 @@
+channels:
+ - conda-forge
+ - bioconda
+dependencies:
+ - mafft=7.520
+ - trimal=1.4.1
+ - iqtree=2.2.0.3
