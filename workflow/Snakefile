@@ -18,7 +18,8 @@ for i, row in data.iterrows():
 
 rule all:
     input:
-        expand("analysis/all/iqtree.treefile.midpoint", set = [ 'all', 'fun' ])
+        "analysis/all/iqtree.treefile.midpoint",
+        "analysis/pdb/sequences.aln"
 
 rule write_fasta:
     output:
@@ -74,12 +75,14 @@ rule midpoint:
     shell:
         "gotree reroot midpoint -i {input} -o {output}"
 
-rule iqtree_protein:
+rule iqtree:
     input:
         "analysis/{set}/trimal.fasta"
     output:
         "analysis/{set}/iqtree.treefile"
     params:
+        pers = 0.2,
+        nstop = 500,
         seed = 123,
         B = 1000,
         prefix = "analysis/{set}/iqtree"
@@ -88,4 +91,48 @@ rule iqtree_protein:
     conda:
         "envs/tools.yaml"
     shell:
-        "iqtree2 -seed {params.seed} -s {input} -B {params.B} -T {threads} --prefix {params.prefix} -redo"
+        "iqtree2 -seed {params.seed} -s {input} -B {params.B} -T {threads} -pers {params.pers} -nstop {params.nstop} --prefix {params.prefix} -redo"
+
+rule pdb2fasta:
+    input:
+        "pdb/template.txt"
+    output:
+        "analysis/pdb/sequences.fas"
+    script:
+        "scripts/pdb2fasta.py"
+
+rule t_coffee:
+    input:
+        sequences = "analysis/pdb/sequences.fas",
+        template = "pdb/template.txt"
+    output:
+        aln = "analysis/pdb/sequences.aln",
+        dnd = "analysis/pdb/sequences.dnd"
+    params:
+        method = "sap_pair,mustang_pair,t_coffee_msa,probcons_msa",
+        pdb_min_sim = 90,
+        pdb_min_cov = 0
+    threads:
+        workflow.cores
+    conda:
+        "envs/t_coffee.yaml"
+    shell:
+        "t_coffee {input.sequences} -outfile {output.aln} -newtree {output.dnd} -method {params.method} -template_file {input.template} -pdb_min_sim {params.pdb_min_sim} -pdb_min_cov {params.pdb_min_cov} -n_core {threads}"
+
+rule plot_tree:
+    input:
+        "analysis/{set}/iqtree.treefile"
+    output:
+        "output/{set}.pdf"
+    script:
+        "scripts/plot_tree.R"
+
+rule features:
+    input:
+        "pdb/template.txt"
+    output:
+        "analysis/pdb/sequences.gff"
+    conda:
+        "envs/r.yaml"
+    script:
+        "scripts/features.R"
