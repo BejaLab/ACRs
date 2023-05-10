@@ -8,12 +8,13 @@ library(ggplot2)
 library(ggnewscale)
 library(castor)
 library(ape)
-library(phangorn)
 
-list_file <- "metadata/Channelrhodopsins_Updated_List.xlsx"
-tree_file <- "analysis/all/iqtree.treefile.midpoint"
+with(snakemake@input, {
+    tree_file <<- tree
+    metadata_file <<- metadata
+})
 
-output_file <- "tmp.pdf"
+output_file <- unlist(snakemake@output)
 
 to_treedata <- function(tree) {
     class(tree) <- c("tbl_tree", "tbl_df", "tbl", "data.frame")
@@ -50,14 +51,14 @@ add_mrca <- function(tree, colname) {
         mutate(mrca = get_mrca(treedata@phylo, node[is.tip])) %>%
         mutate(mrca = ifelse(no_data | is.na(mrca), node, mrca)) %>%
         group_by(mrca) %>%
-        mutate(enough_tips = sum(is.tip) > 2) %>%
+        mutate(enough_tips = sum(is.tip) > 1) %>%
         mutate(ifelse(node == mrca & enough_tips, first(na.omit(my_column)), NA)) %>%
         pull
     tree[[paste0(colname, "_mrca")]] <- mrca
     return(tree)
 }
 
-metadata <- read_xlsx(list_file, .name_repair = "universal") %>%
+metadata <- read_xlsx(metadata_file, .name_repair = "universal") %>%
     mutate(Sequence.name = sub(",.+", "", Sequence.name)) %>%
     mutate(Sequence.name = gsub("@", "_", Sequence.name)) %>%
     mutate(Maximum..nm = ifelse(is.na(Action.maximum..nm), Absorption.maximum..nm, Action.maximum..nm)) 
@@ -85,8 +86,7 @@ p <- ggtree(to_treedata(tree), aes(color = Category_hsp), layout = "ape") +
     geom_tippoint(aes(subset = !is.na(Category) & is.na(Color)), color = "darkgray") +
     geom_tippoint(aes(subset = !is.na(Color), color = Color)) + scale_colour_identity() + new_scale_color() +
     geom_tiplab2(aes(label = Symbol_show), hjust = -0.2) +
-    # geom_tiplab2(aes(label = paste(ChR.group, label)), hjust = -0.2, size = 1) +
     geom_treescale(width = 0.5) +
-    geom_cladelab(mapping = aes(subset = !is.na(ChR.group_mrca), node = node, label = ChR.group_mrca), offset = -0.1)
-    # geom_cladelab(node = 1207, label = "test label", angle = 0, fontsize = 8, hjust = 1)
-ggsave(output_file, p)
+    geom_cladelab(mapping = aes(subset = !is.na(ChR.group_mrca), node = node, label = ChR.group_mrca), offset = -0.1) +
+    xlim(-10, 10)
+ggsave(output_file, p, width = 7, height = 7)

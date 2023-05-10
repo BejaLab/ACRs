@@ -7,25 +7,24 @@ filterwarnings('ignore', category = UserWarning, module = 'openpyxl')
 data = read_excel("metadata/Channelrhodopsins_Updated_List.xlsx", sheet_name = "full_channelrhodopsins")
 
 all_sequences = {}
-fun_sequences = {}
 
 for i, row in data.iterrows():
     name = row['Sequence name']
     seq = row['Rhodopsin domain sequence'].upper()
     all_sequences[name] = seq
-    if row['Currents'] and row['Currents'] == row['Currents'] and row['Currents'] != 'no photocurrents':
-        fun_sequences[name] = seq
 
 rule all:
     input:
-        "analysis/all/iqtree.treefile.midpoint",
+        "output/all.svg",
         "analysis/pdb/sequences.aln"
 
 rule write_fasta:
     output:
         "analysis/{set}/sequences.fasta"
     params:
-        seq = lambda w: fun_sequences if w.set == 'fun' else all_sequences
+        seq = all_sequences
+    conda:
+        "envs/biopython.yaml"
     script:
         "scripts/write_fasta.py"
 
@@ -98,6 +97,8 @@ rule pdb2fasta:
         "pdb/template.txt"
     output:
         "analysis/pdb/sequences.fas"
+    conda:
+        "envs/biopython.py"
     script:
         "scripts/pdb2fasta.py"
 
@@ -121,9 +122,12 @@ rule t_coffee:
 
 rule plot_tree:
     input:
-        "analysis/{set}/iqtree.treefile"
+        tree = "analysis/{set}/iqtree.treefile",
+        metadata = "metadata/Channelrhodopsins_Updated_List.xlsx"
     output:
-        "output/{set}.pdf"
+        "output/{set}.svg"
+    conda:
+        "envs/r.yaml"
     script:
         "scripts/plot_tree.R"
 
