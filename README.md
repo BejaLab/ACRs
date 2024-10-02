@@ -1,7 +1,7 @@
 ACRs
 ====
 
-This repository hosts the bioinformatic analysis worklow used in [Oppermann et al (2023) Robust Optogenetic Inhibition with Red-light-sensitive Anion-conducting Channelrhodopsins, bioRxiv](https://www.biorxiv.org/content/10.1101/2023.06.09.544329v1).
+This repository hosts the bioinformatic analysis worklow used in [Oppermann et al, **Robust Optogenetic Inhibition with Red-light-sensitive Anion-conducting Channelrhodopsins**, *eLife*](https://doi.org/10.7554/eLife.90100).
 
 The [snakemake](https://snakemake.readthedocs.io/)-based code for the workflow is under `workflow/`. The dependencies are under conda control (`snakemake --use-conda`), see `workflow/envs`. The analysis files are under `analysis/`, in particular `ACRs/analysis/pdb` contains the output files for the structural alignment (`sequences.aln` is the main output) and `analysis/all` hosts the various files generated for the phylogenetic analysis:
 
